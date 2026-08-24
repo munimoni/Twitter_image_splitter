@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<!--
+  横分割メーカー — https://github.com/munimoni/Twitter_picture_splitter
+  Copyright (c) 2026 munimoni. Released under the MIT License.
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>横分割メーカー — Xのカルーセル投稿用に画像を2〜4枚に分割</title>
+<meta name="description" content="1枚の画像を縦線で2〜4等分し、X（Twitter）のカルーセル表示でどう見えるかを確認してから書き出せるツール。画像はブラウザ内だけで処理されます。">
+<style>
+  :root {
+    --bg: #101214; --panel: #1a1d21; --panel-2: #22262b; --line: #2b3037;
+    --ink: #e8e3d8; --ink-dim: #8b8f96; --accent: #d9a441; --accent-ink: #111;
+    --gap: 4px; --radius: 10px; --car-h: 300px; /* カルーセルの縦幅（固定） */
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+  a { color: var(--accent); }
+  button, select { font: inherit; }
+  button:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .page { max-width: 980px; margin: 0 auto; padding: 32px 20px 72px; }
+  header { margin-bottom: 28px; }
+  h1 { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+  .lead { color: var(--ink-dim); margin: 0; max-width: 640px; }
+
+  /* ---- layout ---- */
+  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+  .sidebar { display: grid; gap: 20px; position: sticky; top: 20px; }
+  @media (max-width: 860px) { .sidebar { position: static; } }
+  .content { display: grid; gap: 28px; min-width: 0; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .card h2 { font-size: 13px; font-weight: 600; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
+  .card h2 .num { width: 22px; height: 22px; border-radius: 50%; background: var(--panel-2); color: var(--ink-dim); font-size: 12px; display: grid; place-items: center; flex: none; }
+  .card[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+
+  .field { display: grid; gap: 6px; }
+  .field + .field { margin-top: 16px; }
+  .field label, .field .lbl { font-weight: 600; font-size: 13px; }
+  .help { color: var(--ink-dim); font-size: 12px; margin: 0; font-weight: 400; }
+  .help code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; background: var(--panel-2); padding: 1px 4px; border-radius: 3px; }
+
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; width: 100%; }
+  .seg button { flex: 1; background: transparent; border: 0; color: var(--ink-dim); padding: 8px 6px; cursor: pointer; white-space: nowrap; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .seg button:focus-visible { outline-offset: -2px; }
+  select { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--accent); color: var(--accent-ink);
+    border: 0; border-radius: 7px; padding: 10px 16px; font-weight: 600; cursor: pointer; width: 100%; }
+  .btn:disabled { opacity: .35; cursor: default; }
+  .btn.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+  .btn + .btn { margin-top: 8px; }
+
+  /* ---- 1. 画像 ---- */
+  #drop { border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 28px 16px; text-align: center;
+    color: var(--ink-dim); cursor: pointer; transition: border-color .15s, background .15s; display: block; }
+  #drop.over, #drop:hover { border-color: var(--accent); background: #15181c; color: var(--ink); }
+  #drop strong { display: block; color: var(--ink); font-weight: 600; margin-bottom: 4px; }
+  #drop input { display: none; }
+  .file-info { display: flex; align-items: center; gap: 12px; }
+  .file-info img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #000; flex: none; }
+  .file-info { min-width: 0; }
+  .file-info > div { min-width: 0; }
+  .file-info .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+  .file-info .dim { color: var(--ink-dim); font-size: 12px; }
+
+  /* ---- empty state ---- */
+  .empty { border: 1px solid var(--line); border-radius: var(--radius); padding: 48px 24px; text-align: center; color: var(--ink-dim); }
+  .empty strong { color: var(--ink); }
+
+  /* ---- divider editor ---- */
+  .editor { position: relative; padding-top: 18px; user-select: none; -webkit-user-select: none; }
+  .editor img { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: #000; -webkit-user-drag: none; pointer-events: none; }
+  .divider { position: absolute; top: 0; bottom: 0; width: 0; cursor: ew-resize; touch-action: none; }
+  .divider .line { position: absolute; top: 18px; bottom: 0; left: -0.5px; width: 1px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+  .divider .grip { position: absolute; top: 0; left: -7px; width: 14px; height: 18px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
+  .divider .grip svg { display: block; width: 100%; height: 100%; }
+  .divider .grip path { fill: var(--accent); }
+  .divider:hover .grip path, .divider.active .grip path { fill: #f2c56a; }
+  .divider .val { position: absolute; top: 24px; left: 6px; background: rgba(0,0,0,.75); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; opacity: 0; transition: opacity .1s; }
+  .divider.active .val, .divider:hover .val { opacity: 1; }
+  .editor-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; color: var(--ink-dim); font-size: 12px; }
+  .linkbtn { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font-size: 12px; }
+  .linkbtn:hover { text-decoration: underline; }
+
+  /* ---- preview ---- */
+  section h2.sec { font-size: 15px; font-weight: 600; margin: 0; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+  .sec-head .seg { width: auto; }
+  .sec-head .seg button { padding: 6px 12px; font-size: 12px; }
+
+  .bottom { display: grid; grid-template-columns: 390px 1fr; gap: 28px; align-items: start; margin-top: 28px; }
+  @media (max-width: 860px) { .bottom { grid-template-columns: 1fr; } }
+  .phone-wrap { display: grid; gap: 14px; }
+  .phone-side { display: grid; gap: 12px; }
+  .phone-side .seg { width: auto; display: inline-flex; }
+  .phone { width: 390px; max-width: 100%; background: #000; border-radius: 34px; padding: 12px; border: 1px solid #333; flex: none; }
+  .screen { border-radius: 24px; overflow: hidden; background: var(--x-bg); }
+  .screen[data-theme="black"] { --x-bg:#000000; --x-text:#e7e9ea; --x-dim:#71767b; --x-border:#2f3336; --x-avatar:#333639; --x-dot:#3e4144; }
+  .screen[data-theme="dim"]   { --x-bg:#15202b; --x-text:#f7f9f9; --x-dim:#8b98a5; --x-border:#38444d; --x-avatar:#425364; --x-dot:#38444d; }
+  .screen[data-theme="light"] { --x-bg:#ffffff; --x-text:#0f1419; --x-dim:#536471; --x-border:#cfd9de; --x-avatar:#cfd9de; --x-dot:#cfd9de; }
+  .post { padding: 12px 16px 6px; display: flex; gap: 10px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--x-avatar); flex: none; }
+  .meta { flex: 1; min-width: 0; }
+  .meta .name { font-size: 15px; font-weight: 700; color: var(--x-text); }
+  .meta .handle { font-size: 14px; color: var(--x-dim); margin-left: 4px; font-weight: 400; }
+  .meta .text { font-size: 15px; color: var(--x-text); margin-top: 4px; }
+  .car-outer { position: relative; }
+  .carousel { display: flex; gap: var(--gap); overflow-x: auto; scroll-snap-type: x mandatory;
+    padding: 8px 16px 8px 66px; scrollbar-width: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+  .carousel.dragging { cursor: grabbing; scroll-snap-type: none; }
+  .carousel::-webkit-scrollbar { display: none; }
+  .carousel img { flex: none; height: var(--car-h); width: auto; max-width: 290px; object-fit: cover; border-radius: 16px; scroll-snap-align: start;
+    border: 1px solid var(--x-border); background: var(--x-bg); pointer-events: none; -webkit-user-drag: none; }
+  .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%;
+    border: 0; background: rgba(15,20,25,.75); color: #fff; font-size: 18px; cursor: pointer; display: grid; place-items: center; }
+  .nav:disabled { opacity: 0; pointer-events: none; }
+  .nav.prev { left: 70px; } .nav.next { right: 20px; }
+  .dots { display: flex; justify-content: center; gap: 5px; padding: 4px 0 14px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--x-dot); }
+  .dots i.on { background: var(--x-text); }
+  .actions { display: flex; justify-content: space-around; padding: 0 16px 14px 66px; color: var(--x-dim); font-size: 13px; }
+
+  /* ---- export ---- */
+  .pieces { display: grid; gap: var(--gap); align-items: start; }
+  .piece { min-width: 0; }
+  .piece .thumb { position: relative; }
+  .piece img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #000; }
+  .piece .tag { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.65); color: var(--ink); font-size: 11px; padding: 2px 7px; border-radius: 4px; }
+  .piece .dl { display: inline-block; margin-top: 6px; font-size: 12px; text-decoration: none; }
+  .piece .dl:hover { text-decoration: underline; }
+  .export-info { color: var(--ink-dim); font-size: 12px; margin: 10px 0 0; }
+
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--ink-dim); font-size: 12px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+  <h1>横分割メーカー</h1>
+  <p class="lead">1枚の画像を縦線で2〜4枚に分けて、X（Twitter）のカルーセル表示でどう見えるかを確認してから保存できます。</p>
+</header>
+
+<div class="layout">
+  <!-- ========== 左：設定 ========== -->
+  <aside class="sidebar">
+
+    <div class="card">
+      <h2><span class="num">1</span>画像を選ぶ</h2>
+      <label id="drop">
+        <strong>ここに画像をドロップ</strong>
+        クリックして選択、または貼り付け（Ctrl+V）<br>JPG / PNG / WEBP
+        <input type="file" id="file" accept="image/*">
+      </label>
+      <div class="file-info hidden" id="fileInfo">
+        <img id="thumb" alt="">
+        <div>
+          <div class="name" id="fileName"></div>
+          <div class="dim" id="fileDim"></div>
+          <a href="#" id="reset" style="font-size:12px">別の画像を選ぶ</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="settings" aria-disabled="true">
+      <h2><span class="num">2</span>分け方を決める</h2>
+
+      <div class="field">
+        <span class="lbl" id="nLbl">枚数</span>
+        <div class="seg" id="nSeg" role="group" aria-labelledby="nLbl">
+          <button data-n="2">2枚</button><button data-n="3">3枚</button><button data-n="4" class="on">4枚</button>
+        </div>
+        <p class="help">切る位置は右の「分割位置」で調整できます。</p>
+      </div>
+
+    </div>
+
+    <div class="card" id="exportCard" aria-disabled="true">
+      <h2><span class="num">3</span>保存する</h2>
+      <button class="btn" id="dlAll">すべて保存</button>
+      <p class="help" style="margin-top:8px">画像を1枚ずつ連続でダウンロードします。ファイル名は <code>元の名前_1of4.png</code> のような連番です。ブラウザが「複数ファイルのダウンロードを許可しますか」と聞いてきたら許可してください。</p>
+    </div>
+
+  </aside>
+
+  <!-- ========== 右：プレビューと一覧 ========== -->
+  <div class="content">
+
+    <div class="empty" id="empty">
+      <strong>画像を選ぶとここにプレビューが表示されます</strong><br>
+      横長の画像を4枚に分けると、スワイプするたびに絵がつながって見える投稿になります。
+    </div>
+
+    <section class="hidden" id="editorSec">
+      <div class="sec-head"><h2 class="sec">分割位置</h2></div>
+      <div class="editor" id="editor"><img id="editImg" alt=""></div>
+      <div class="editor-foot">
+        <span>上のつまみを左右にドラッグして切る位置を調整できます。</span>
+        <button class="linkbtn" id="equalize">均等に戻す</button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div class="bottom">
+    <section class="hidden" id="previewSec">
+      <div class="sec-head"><h2 class="sec">投稿したときの見え方</h2></div>
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen" id="screen" data-theme="black">
+          <div class="post">
+            <div class="avatar"></div>
+            <div class="meta">
+              <div class="name">あなた<span class="handle">@you · 1分</span></div>
+              <div class="text">横にスワイプしてね →</div>
+            </div>
+          </div>
+          <div class="car-outer">
+            <div class="carousel" id="carousel" aria-label="カルーセルプレビュー"></div>
+            <button class="nav prev" id="prev" aria-label="前の画像">‹</button>
+            <button class="nav next" id="next" aria-label="次の画像">›</button>
+          </div>
+          <div class="dots" id="dots"></div>
+          <div class="actions"><span>💬</span><span>🔁</span><span>♡</span><span>📊</span><span>↑</span></div>
+        </div></div>
+        <div class="phone-side">
+          <div class="field">
+            <span class="lbl">Xの表示テーマ</span>
+            <div class="seg" id="themeSeg">
+              <button data-theme="black" class="on">ブラック</button><button data-theme="dim">ダークブルー</button><button data-theme="light">ライト</button>
+            </div>
+          </div>
+          <p class="help">ドラッグ・スワイプ・矢印キーで画像を送れます。実際の表示はアプリ／ブラウザ版や時期で変わることがあります。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="hidden" id="piecesSec">
+      <div class="sec-head"><h2 class="sec">分割後の画像</h2><span class="help" style="color:var(--ink-dim);font-size:12px">4pxの隙間をあけて並べた状態</span></div>
+      <div class="pieces" id="pieces"></div>
+      <p class="export-info" id="exportInfo"></p>
+    </section>
+
+</div>
+
+<footer>画像はお使いのブラウザ内だけで処理され、サーバーには送信されません。</footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const GAP = 4;
+const state = { img: null, n: 4, cuts: [], pieces: [], name: 'image' }; // cuts: 切る位置（0〜1）
+const MIN_FRAC = 0.03; // 1枚の最小幅（全体比）
+const show = (sel, on = true) => $(sel).classList.toggle('hidden', !on);
+
+/* ---------- 1. 画像 ---------- */
+const drop = $('#drop'), fileInput = $('#file');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+document.addEventListener('paste', e => {
+  const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (f) loadFile(f.getAsFile());
+});
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const img = new Image();
+  img.onload = () => {
+    state.img = img; state.name = (file.name || 'image').replace(/\.[^.]+$/, '');
+    $('#thumb').src = img.src; $('#editImg').src = img.src; $('#fileName').textContent = file.name || '貼り付けた画像';
+    $('#fileDim').textContent = `${img.naturalWidth} × ${img.naturalHeight} px`;
+    show('#drop', false); show('#fileInfo'); show('#empty', false); show('#editorSec'); show('#previewSec'); show('#piecesSec');
+    equalize();
+    $('#settings').removeAttribute('aria-disabled'); $('#exportCard').removeAttribute('aria-disabled');
+    render();
+  };
+  img.src = URL.createObjectURL(file);
+}
+$('#reset').addEventListener('click', e => {
+  e.preventDefault();
+  state.img = null; fileInput.value = '';
+  show('#drop'); show('#fileInfo', false); show('#empty'); show('#editorSec', false); show('#previewSec', false); show('#piecesSec', false);
+  $('#settings').setAttribute('aria-disabled', 'true'); $('#exportCard').setAttribute('aria-disabled', 'true');
+});
+
+/* ---------- 2. 設定 ---------- */
+function segHandler(sel, key, cb) {
+  $(sel).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...$(sel).children].forEach(x => x.classList.toggle('on', x === b));
+    cb(b.dataset[key]);
+  });
+}
+segHandler('#nSeg', 'n', v => { state.n = +v; equalize(); });
+segHandler('#themeSeg', 'theme', v => { $('#screen').dataset.theme = v; });
+const pieceName = i => `${state.name}_${i + 1}of${state.n}.png`;
+
+/* ---------- 3. 保存 ---------- */
+$('#dlAll').addEventListener('click', async () => {
+  const btn = $('#dlAll'); btn.disabled = true;
+  for (let i = 0; i < state.pieces.length; i++) {
+    btn.textContent = `保存中… ${i + 1} / ${state.pieces.length}`;
+    const a = document.createElement('a');
+    a.href = state.pieces[i].url; a.download = pieceName(i);
+    document.body.appendChild(a); a.click(); a.remove();
+    await new Promise(r => setTimeout(r, 300)); // 連続発火をブラウザが取りこぼさないよう少し間隔をあける
+  }
+  btn.disabled = false; btn.textContent = 'すべて保存';
+});
+
+/* ---------- 分割処理 ---------- */
+function bounds() { return [0, ...state.cuts, 1]; }
+function equalize() {
+  state.cuts = Array.from({ length: state.n - 1 }, (_, i) => (i + 1) / state.n);
+  drawHandles(); render();
+}
+$('#equalize').addEventListener('click', equalize);
+
+function render() {
+  const { img, n } = state;
+  if (!img) return;
+  const W = img.naturalWidth, H = img.naturalHeight, b = bounds();
+  state.pieces.forEach(p => URL.revokeObjectURL(p.url));
+  const jobs = [], widths = [];
+  for (let i = 0; i < n; i++) {
+    const x0 = Math.round(b[i] * W), x1 = Math.round(b[i + 1] * W), w = Math.max(1, x1 - x0);
+    widths.push(w);
+    const c = document.createElement('canvas'); c.width = w; c.height = H;
+    c.getContext('2d').drawImage(img, x0, 0, w, H, 0, 0, w, H);
+    jobs.push(new Promise(res => c.toBlob(bl => res({ blob: bl, url: URL.createObjectURL(bl), w }), 'image/png')));
+  }
+  Promise.all(jobs).then(pieces => {
+    state.pieces = pieces;
+    drawCarousel(); drawPieces();
+    $('#exportInfo').textContent = `幅 ${widths.join(' / ')} px × 高さ ${H} px（${n}枚）`;
+  });
+}
+
+/* ---------- 分割位置エディタ ---------- */
+const editor = $('#editor');
+function drawHandles() {
+  editor.querySelectorAll('.divider').forEach(h => h.remove());
+  state.cuts.forEach((c, i) => {
+    const h = document.createElement('div'); h.className = 'divider'; h.dataset.i = i;
+    h.innerHTML = `<div class="grip"><svg viewBox="0 0 16 20"><path d="M1 1h14v9l-7 9-7-9z"/></svg></div><div class="line"></div><span class="val"></span>`;
+    editor.appendChild(h);
+    positionHandle(h, i);
+    h.addEventListener('pointerdown', startDrag);
+  });
+}
+function positionHandle(h, i) {
+  const f = state.cuts[i];
+  h.style.left = (f * 100) + '%';
+  h.querySelector('.val').textContent = Math.round(f * state.img.naturalWidth) + ' px';
+}
+let hd = null, renderTimer = null;
+function startDrag(e) {
+  const h = e.currentTarget, i = +h.dataset.i;
+  hd = { h, i, rect: $('#editImg').getBoundingClientRect() };
+  h.classList.add('active'); h.setPointerCapture(e.pointerId);
+  e.preventDefault();
+}
+editor.addEventListener('pointermove', e => {
+  if (!hd) return;
+  const { h, i, rect } = hd;
+  let f = (e.clientX - rect.left) / rect.width;
+  const lo = (i === 0 ? 0 : state.cuts[i - 1]) + MIN_FRAC;
+  const hi = (i === state.cuts.length - 1 ? 1 : state.cuts[i + 1]) - MIN_FRAC;
+  f = Math.max(lo, Math.min(hi, f));
+  state.cuts[i] = f; positionHandle(h, i);
+  clearTimeout(renderTimer); renderTimer = setTimeout(render, 60); // ドラッグ中も軽く追従
+});
+function endHandleDrag() { if (!hd) return; hd.h.classList.remove('active'); hd = null; render(); }
+editor.addEventListener('pointerup', endHandleDrag);
+editor.addEventListener('pointercancel', endHandleDrag);
+
+/* ---------- カルーセル ---------- */
+const car = $('#carousel'), dots = $('#dots');
+let cur = 0;
+const imgs = () => [...car.querySelectorAll('img')];
+const offsetOf = i => imgs()[i].offsetLeft - car.querySelector('img').offsetLeft;
+const nearest = () => { const o = car.scrollLeft; let best = 0, bd = Infinity; imgs().forEach((_, i) => { const d = Math.abs(offsetOf(i) - o); if (d < bd) { bd = d; best = i; } }); return best; };
+function goTo(i) {
+  cur = Math.max(0, Math.min(state.pieces.length - 1, i));
+  car.scrollTo({ left: offsetOf(cur), behavior: 'smooth' });
+  updateUI();
+}
+function updateUI() {
+  [...dots.children].forEach((d, i) => d.classList.toggle('on', i === cur));
+  $('#prev').disabled = cur === 0;
+  $('#next').disabled = cur >= state.pieces.length - 1;
+}
+function drawCarousel() {
+  car.innerHTML = ''; dots.innerHTML = '';
+  state.pieces.forEach((p, i) => {
+    const im = document.createElement('img'); im.src = p.url; im.alt = `${i + 1}枚目`; car.appendChild(im);
+    dots.appendChild(document.createElement('i'));
+  });
+  cur = 0; car.scrollLeft = 0; updateUI();
+}
+$('#prev').addEventListener('click', () => goTo(cur - 1));
+$('#next').addEventListener('click', () => goTo(cur + 1));
+car.addEventListener('scroll', () => {
+  if (car.classList.contains('dragging')) return;
+  const i = nearest();
+  if (i !== cur) { cur = i; updateUI(); }
+});
+let drag = null;
+car.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'mouse') return;
+  drag = { x: e.clientX, left: car.scrollLeft, t: performance.now() };
+  car.classList.add('dragging'); car.setPointerCapture(e.pointerId);
+});
+car.addEventListener('pointermove', e => { if (drag) car.scrollLeft = drag.left - (e.clientX - drag.x); });
+function endDrag(e) {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dt = performance.now() - drag.t;
+  car.classList.remove('dragging');
+  const target = (Math.abs(dx) > 40 || (Math.abs(dx) > 10 && dt < 250)) ? cur - Math.sign(dx) : nearest();
+  drag = null; goTo(target);
+}
+car.addEventListener('pointerup', endDrag);
+car.addEventListener('pointercancel', endDrag);
+car.tabIndex = 0;
+car.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') goTo(cur - 1);
+  if (e.key === 'ArrowRight') goTo(cur + 1);
+});
+
+/* ---------- 分割後の一覧 ---------- */
+function drawPieces() {
+  const wrap = $('#pieces'); wrap.innerHTML = ''; wrap.style.gridTemplateColumns = state.pieces.map(p => p.w + 'fr').join(' ');
+  state.pieces.forEach((p, i) => {
+    const d = document.createElement('div'); d.className = 'piece';
+    d.innerHTML = `<div class="thumb"><img src="${p.url}" alt="${i + 1}枚目"><span class="tag">${i + 1} / ${state.n}</span></div>
+      <a class="dl" href="${p.url}" download="${pieceName(i)}">この画像を保存</a>`;
+    wrap.appendChild(d);
+  });
+}
+</script>
+</body>
+</html>
