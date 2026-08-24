@@ -2,7 +2,7 @@
 
 1枚の画像を縦線で 2〜4 枚に分割し、Twitter（X）のカルーセル表示でどう見えるかを確認してから保存できるツールです。横長の画像を分けて投稿すると、スワイプするたびに絵がつながって見える投稿になります。
 
-🔗 **公開ページ:** https://github.com/munimoni/Twitter_image_splitter
+🔗 **公開ページ:** https://munimoni.github.io/Twitter_image_splitter/
 
 ## 使い方
 
