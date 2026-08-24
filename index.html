@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
-  横分割メーカー — https://github.com/munimoni/Twitter_picture_splitter
-  Copyright (c) 2026 munimoni. Released under the MIT License.
+  横分割メーカー — https://github.com/munimoni/Twitter_image_splitter/
+  Copyright (c) 2026 munimoni / punit. Released under the MIT License.
 -->
 <html lang="ja">
 <head>
@@ -28,13 +28,14 @@
   .lead { color: var(--ink-dim); margin: 0; max-width: 640px; }
 
   /* ---- layout ---- */
-  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: start; }
+  .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 28px; align-items: start; }
+  .layout > * { min-width: 0; overflow: hidden; }
   @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
-  .sidebar { display: grid; gap: 20px; position: sticky; top: 20px; }
+  .sidebar { display: grid; gap: 20px; position: sticky; top: 20px; min-width: 0; }
   @media (max-width: 860px) { .sidebar { position: static; } }
   .content { display: grid; gap: 28px; min-width: 0; }
 
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .card { min-width: 0; overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
   .card h2 { font-size: 13px; font-weight: 600; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
   .card h2 .num { width: 22px; height: 22px; border-radius: 50%; background: var(--panel-2); color: var(--ink-dim); font-size: 12px; display: grid; place-items: center; flex: none; }
   .card[aria-disabled="true"] { opacity: .45; pointer-events: none; }
@@ -43,7 +44,7 @@
   .field + .field { margin-top: 16px; }
   .field label, .field .lbl { font-weight: 600; font-size: 13px; }
   .help { color: var(--ink-dim); font-size: 12px; margin: 0; font-weight: 400; }
-  .help code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; background: var(--panel-2); padding: 1px 4px; border-radius: 3px; }
+  .help code { overflow-wrap: anywhere; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; background: var(--panel-2); padding: 1px 4px; border-radius: 3px; }
 
   .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; width: 100%; }
   .seg button { flex: 1; background: transparent; border: 0; color: var(--ink-dim); padding: 8px 6px; cursor: pointer; white-space: nowrap; }
@@ -64,11 +65,10 @@
   #drop.over, #drop:hover { border-color: var(--accent); background: #15181c; color: var(--ink); }
   #drop strong { display: block; color: var(--ink); font-weight: 600; margin-bottom: 4px; }
   #drop input { display: none; }
-  .file-info { display: flex; align-items: center; gap: 12px; }
+  .file-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .file-info img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #000; flex: none; }
-  .file-info { min-width: 0; }
   .file-info > div { min-width: 0; }
-  .file-info .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+  .file-info .name { font-weight: 600; font-size: 13px; word-break: break-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .file-info .dim { color: var(--ink-dim); font-size: 12px; }
 
   /* ---- empty state ---- */
@@ -76,8 +76,8 @@
   .empty strong { color: var(--ink); }
 
   /* ---- divider editor ---- */
-  .editor { position: relative; padding-top: 18px; user-select: none; -webkit-user-select: none; }
-  .editor img { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: #000; -webkit-user-drag: none; pointer-events: none; }
+  .editor { position: relative; display: inline-block; max-width: 100%; padding-top: 18px; user-select: none; -webkit-user-select: none; }
+  .editor img { display: block; max-width: 100%; max-height: 520px; width: auto; height: auto; border-radius: 6px; border: 1px solid var(--line); background: #000; -webkit-user-drag: none; pointer-events: none; }
   .divider { position: absolute; top: 0; bottom: 0; width: 0; cursor: ew-resize; touch-action: none; }
   .divider .line { position: absolute; top: 18px; bottom: 0; left: -0.5px; width: 1px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
   .divider .grip { position: absolute; top: 0; left: -7px; width: 14px; height: 18px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
@@ -96,10 +96,8 @@
   .sec-head .seg { width: auto; }
   .sec-head .seg button { padding: 6px 12px; font-size: 12px; }
 
-  .bottom { display: grid; grid-template-columns: 390px 1fr; gap: 28px; align-items: start; margin-top: 28px; }
-  @media (max-width: 860px) { .bottom { grid-template-columns: 1fr; } }
-  .phone-wrap { display: grid; gap: 14px; }
-  .phone-side { display: grid; gap: 12px; }
+  .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone-side { display: grid; gap: 12px; flex: 1 1 200px; min-width: 0; }
   .phone-side .seg { width: auto; display: inline-flex; }
   .phone { width: 390px; max-width: 100%; background: #000; border-radius: 34px; padding: 12px; border: 1px solid #333; flex: none; }
   .screen { border-radius: 24px; overflow: hidden; background: var(--x-bg); }
@@ -129,7 +127,7 @@
   .actions { display: flex; justify-content: space-around; padding: 0 16px 14px 66px; color: var(--x-dim); font-size: 13px; }
 
   /* ---- export ---- */
-  .pieces { display: grid; gap: var(--gap); align-items: start; }
+  .pieces { display: grid; gap: var(--gap); align-items: start; max-width: var(--pieces-max, none); }
   .piece { min-width: 0; }
   .piece .thumb { position: relative; }
   .piece img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #000; }
@@ -186,7 +184,7 @@
     <div class="card" id="exportCard" aria-disabled="true">
       <h2><span class="num">3</span>保存する</h2>
       <button class="btn" id="dlAll">すべて保存</button>
-      <p class="help" style="margin-top:8px">画像を1枚ずつ連続でダウンロードします。ファイル名は <code>元の名前_1of4.png</code> のような連番です。ブラウザが「複数ファイルのダウンロードを許可しますか」と聞いてきたら許可してください。</p>
+      <p class="help" id="saveHelp" style="margin-top:8px">画像を1枚ずつ連続でダウンロードします。ファイル名は <code>元の名前_1of4.png</code> のような連番です。ブラウザが「複数ファイルのダウンロードを許可しますか」と聞いてきたら許可してください。</p>
     </div>
 
   </aside>
@@ -208,10 +206,6 @@
       </div>
     </section>
 
-  </div>
-</div>
-
-<div class="bottom">
     <section class="hidden" id="previewSec">
       <div class="sec-head"><h2 class="sec">投稿したときの見え方</h2></div>
       <div class="phone-wrap">
@@ -249,6 +243,7 @@
       <p class="export-info" id="exportInfo"></p>
     </section>
 
+  </div>
 </div>
 
 <footer>画像はお使いのブラウザ内だけで処理され、サーバーには送信されません。</footer>
@@ -305,17 +300,34 @@ segHandler('#themeSeg', 'theme', v => { $('#screen').dataset.theme = v; });
 const pieceName = i => `${state.name}_${i + 1}of${state.n}.png`;
 
 /* ---------- 3. 保存 ---------- */
+function pieceFiles() {
+  return state.pieces.map((p, i) => new File([p.blob], pieceName(i), { type: 'image/png' }));
+}
+const canShare = () => { try { return !!navigator.canShare && navigator.canShare({ files: pieceFiles() }); } catch { return false; } };
+
 $('#dlAll').addEventListener('click', async () => {
   const btn = $('#dlAll'); btn.disabled = true;
-  for (let i = 0; i < state.pieces.length; i++) {
-    btn.textContent = `保存中… ${i + 1} / ${state.pieces.length}`;
-    const a = document.createElement('a');
-    a.href = state.pieces[i].url; a.download = pieceName(i);
-    document.body.appendChild(a); a.click(); a.remove();
-    await new Promise(r => setTimeout(r, 300)); // 連続発火をブラウザが取りこぼさないよう少し間隔をあける
-  }
-  btn.disabled = false; btn.textContent = 'すべて保存';
+  try {
+    if (canShare()) {
+      // スマホ：共有シートから「画像を保存」でまとめて写真に保存できる
+      await navigator.share({ files: pieceFiles(), title: '分割した画像' });
+    } else {
+      for (let i = 0; i < state.pieces.length; i++) {
+        btn.textContent = `保存中… ${i + 1} / ${state.pieces.length}`;
+        const a = document.createElement('a');
+        a.href = state.pieces[i].url; a.download = pieceName(i);
+        document.body.appendChild(a); a.click(); a.remove();
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') alert('保存できませんでした。「分割後の画像」から1枚ずつ保存してください。');
+  } finally { btn.disabled = false; btn.textContent = 'すべて保存'; }
 });
+// スマホでは説明文を共有シート向けに差し替え
+if (/iPhone|iPad|Android/i.test(navigator.userAgent) && navigator.canShare) {
+  $('#saveHelp').innerHTML = '共有シートが開くので「画像を保存」を選ぶと、写真アプリにまとめて保存されます。1枚ずつ保存したいときは下の画像を長押ししてください。';
+}
 
 /* ---------- 分割処理 ---------- */
 function bounds() { return [0, ...state.cuts, 1]; }
@@ -439,6 +451,7 @@ car.addEventListener('keydown', e => {
 /* ---------- 分割後の一覧 ---------- */
 function drawPieces() {
   const wrap = $('#pieces'); wrap.innerHTML = ''; wrap.style.gridTemplateColumns = state.pieces.map(p => p.w + 'fr').join(' ');
+  wrap.style.setProperty('--pieces-max', Math.round(state.img.naturalWidth / state.img.naturalHeight * 420) + (state.n - 1) * GAP + 'px'); // 縦長でも高さ420px程度に収める
   state.pieces.forEach((p, i) => {
     const d = document.createElement('div'); d.className = 'piece';
     d.innerHTML = `<div class="thumb"><img src="${p.url}" alt="${i + 1}枚目"><span class="tag">${i + 1} / ${state.n}</span></div>
