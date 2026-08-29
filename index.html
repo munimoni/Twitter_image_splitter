@@ -7,7 +7,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>横分割メーカー</title>
+<title>横分割メーカー — Xのカルーセル投稿用に画像を2〜4枚に分割</title>
 <meta name="description" content="1枚の画像を縦線で2〜4等分し、X（Twitter）のカルーセル表示でどう見えるかを確認してから書き出せるツール。画像はブラウザ内だけで処理されます。">
 <style>
   :root {
@@ -34,6 +34,7 @@
   .sidebar { display: grid; gap: 20px; position: sticky; top: 20px; min-width: 0; }
   @media (max-width: 860px) { .sidebar { position: static; } }
   .content { display: grid; gap: 28px; min-width: 0; }
+  .content > * { min-width: 0; }
 
   .card { min-width: 0; overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
   .card h2 { font-size: 13px; font-weight: 600; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
@@ -86,20 +87,22 @@
   .divider:hover .grip path, .divider.active .grip path { fill: #f2c56a; }
   .divider .val { position: absolute; top: 24px; left: 6px; background: rgba(0,0,0,.75); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; opacity: 0; transition: opacity .1s; }
   .divider.active .val, .divider:hover .val { opacity: 1; }
-  .editor-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; color: var(--ink-dim); font-size: 12px; }
-  .linkbtn { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font-size: 12px; }
+  .editor-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; color: var(--ink-dim); font-size: 12px; }
+  .linkbtn { white-space: nowrap; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font-size: 12px; }
   .linkbtn:hover { text-decoration: underline; }
 
   /* ---- preview ---- */
   section h2.sec { font-size: 15px; font-weight: 600; margin: 0; }
   .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
   .sec-head .seg { width: auto; }
+  .sec-head .help { flex: 1 1 160px; text-align: right; min-width: 0; }
+  @media (max-width: 500px) { .sec-head .help { flex-basis: 100%; text-align: left; } }
   .sec-head .seg button { padding: 6px 12px; font-size: 12px; }
 
   .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
   .phone-side { display: grid; gap: 12px; flex: 1 1 200px; min-width: 0; }
   .phone-side .seg { width: auto; display: inline-flex; }
-  .phone { width: 390px; max-width: 100%; background: #000; border-radius: 34px; padding: 12px; border: 1px solid #333; flex: none; }
+  .phone { width: 100%; max-width: 390px; background: #000; border-radius: 34px; padding: 12px; border: 1px solid #333; flex: none; }
   .screen { border-radius: 24px; overflow: hidden; background: var(--x-bg); }
   .screen[data-theme="black"] { --x-bg:#000000; --x-text:#e7e9ea; --x-dim:#71767b; --x-border:#2f3336; --x-avatar:#333639; --x-dot:#3e4144; }
   .screen[data-theme="dim"]   { --x-bg:#15202b; --x-text:#f7f9f9; --x-dim:#8b98a5; --x-border:#38444d; --x-avatar:#425364; --x-dot:#38444d; }
@@ -132,7 +135,7 @@
   .piece .thumb { position: relative; }
   .piece img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #000; }
   .piece .tag { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.65); color: var(--ink); font-size: 11px; padding: 2px 7px; border-radius: 4px; }
-  .piece .dl { display: inline-block; margin-top: 6px; font-size: 12px; text-decoration: none; }
+  .piece .dl { display: block; margin-top: 6px; font-size: 12px; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .piece .dl:hover { text-decoration: underline; }
   .export-info { color: var(--ink-dim); font-size: 12px; margin: 10px 0 0; }
 
@@ -176,7 +179,7 @@
         <div class="seg" id="nSeg" role="group" aria-labelledby="nLbl">
           <button data-n="2">2枚</button><button data-n="3">3枚</button><button data-n="4" class="on">4枚</button>
         </div>
-        <p class="help">切る位置は右の「分割位置」で調整できます。</p>
+        <p class="help">切る位置は「分割位置」で調整できます。</p>
       </div>
 
     </div>
@@ -238,7 +241,7 @@
     </section>
 
     <section class="hidden" id="piecesSec">
-      <div class="sec-head"><h2 class="sec">分割後の画像</h2><span class="help" style="color:var(--ink-dim);font-size:12px">4pxの隙間をあけて並べた状態</span></div>
+      <div class="sec-head"><h2 class="sec">分割後の画像</h2><span class="help">4pxの隙間をあけて並べた状態</span></div>
       <div class="pieces" id="pieces"></div>
       <p class="export-info" id="exportInfo"></p>
     </section>
@@ -303,7 +306,8 @@ const pieceName = i => `${state.name}_${i + 1}of${state.n}.png`;
 function pieceFiles() {
   return state.pieces.map((p, i) => new File([p.blob], pieceName(i), { type: 'image/png' }));
 }
-const canShare = () => { try { return !!navigator.canShare && navigator.canShare({ files: pieceFiles() }); } catch { return false; } };
+const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+const canShare = () => { try { return isMobile && !!navigator.canShare && navigator.canShare({ files: pieceFiles() }); } catch { return false; } };
 
 $('#dlAll').addEventListener('click', async () => {
   const btn = $('#dlAll'); btn.disabled = true;
@@ -325,7 +329,7 @@ $('#dlAll').addEventListener('click', async () => {
   } finally { btn.disabled = false; btn.textContent = 'すべて保存'; }
 });
 // スマホでは説明文を共有シート向けに差し替え
-if (/iPhone|iPad|Android/i.test(navigator.userAgent) && navigator.canShare) {
+if (isMobile && navigator.canShare) {
   $('#saveHelp').innerHTML = '共有シートが開くので「画像を保存」を選ぶと、写真アプリにまとめて保存されます。1枚ずつ保存したいときは下の画像を長押ししてください。';
 }
 
@@ -450,17 +454,15 @@ car.addEventListener('keydown', e => {
 
 /* ---------- 分割後の一覧 ---------- */
 function drawPieces() {
-  const wrap = $('#pieces'); wrap.innerHTML = ''; wrap.style.gridTemplateColumns = state.pieces.map(p => p.w + 'fr').join(' ');
+  const wrap = $('#pieces'); wrap.innerHTML = ''; wrap.style.gridTemplateColumns = state.pieces.map(p => `minmax(0, ${p.w}fr)`).join(' ');
   wrap.style.setProperty('--pieces-max', Math.round(state.img.naturalWidth / state.img.naturalHeight * 420) + (state.n - 1) * GAP + 'px'); // 縦長でも高さ420px程度に収める
   state.pieces.forEach((p, i) => {
     const d = document.createElement('div'); d.className = 'piece';
     d.innerHTML = `<div class="thumb"><img src="${p.url}" alt="${i + 1}枚目"><span class="tag">${i + 1} / ${state.n}</span></div>
-      <a class="dl" href="${p.url}" download="${pieceName(i)}">この画像を保存</a>`;
+      <a class="dl" href="${p.url}" download="${pieceName(i)}" title="${pieceName(i)}">保存</a>`;
     wrap.appendChild(d);
   });
 }
 </script>
-<script data-goatcounter="https://munimoni.goatcounter.com/count"
-      async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
