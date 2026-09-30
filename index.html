@@ -3,6 +3,7 @@
   横分割メーカー — https://github.com/munimoni/Twitter_image_splitter
   Copyright (c) 2026 munimoni / punit. Released under the MIT License.
 -->
+
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -44,6 +45,11 @@
   .field { display: grid; gap: 6px; }
   .field + .field { margin-top: 16px; }
   .field label, .field .lbl { font-weight: 600; font-size: 13px; }
+  .check { display: flex !important; align-items: center; gap: 8px; cursor: pointer; }
+  .check input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; flex: none; }
+  #trimRow { display: grid; gap: 6px; margin-top: 10px; padding-left: 23px; }
+  #trimRow.off { display: none; }
+  .sub { font-weight: 500 !important; font-size: 12px !important; color: var(--ink-dim); }
   .help { color: var(--ink-dim); font-size: 12px; margin: 0; font-weight: 400; }
   .help code { overflow-wrap: anywhere; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; background: var(--panel-2); padding: 1px 4px; border-radius: 3px; }
 
@@ -52,6 +58,8 @@
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
   .seg button:focus-visible { outline-offset: -2px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .field label span { color: var(--ink-dim); font-weight: 400; margin-left: 6px; }
   select { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--accent); color: var(--accent-ink);
@@ -182,6 +190,16 @@
         <p class="help">切る位置は「分割位置」で調整できます。</p>
       </div>
 
+      <div class="field">
+        <label class="check"><input type="checkbox" id="trimOn" checked>隙間ぶんを削ってつなげる</label>
+        <p class="help">Xは画像の間に約4pxの隙間を入れるため、そのまま等分すると絵がずれて見えます。境目を少し削っておくと隙間ごしでもつながって見えます。</p>
+        <div id="trimRow">
+          <label for="trim" class="sub">削り幅 <span id="trimVal">0 px</span></label>
+          <input type="range" id="trim" min="0" max="60" step="2" value="0">
+          <p class="help" id="trimHint"></p>
+        </div>
+      </div>
+
     </div>
 
     <div class="card" id="exportCard" aria-disabled="true">
@@ -255,7 +273,7 @@
 <script>
 const $ = s => document.querySelector(s);
 const GAP = 4;
-const state = { img: null, n: 4, cuts: [], pieces: [], name: 'image' }; // cuts: 切る位置（0〜1）
+const state = { img: null, n: 4, cuts: [], trim: 0, trimOn: true, pieces: [], name: 'image' }; // cuts: 切る位置（0〜1）
 const MIN_FRAC = 0.03; // 1枚の最小幅（全体比）
 const show = (sel, on = true) => $(sel).classList.toggle('hidden', !on);
 
@@ -277,6 +295,7 @@ function loadFile(file) {
     $('#thumb').src = img.src; $('#editImg').src = img.src; $('#fileName').textContent = file.name || '貼り付けた画像';
     $('#fileDim').textContent = `${img.naturalWidth} × ${img.naturalHeight} px`;
     show('#drop', false); show('#fileInfo'); show('#empty', false); show('#editorSec'); show('#previewSec'); show('#piecesSec');
+    suggestTrim(img);
     equalize();
     $('#settings').removeAttribute('aria-disabled'); $('#exportCard').removeAttribute('aria-disabled');
     render();
@@ -341,14 +360,31 @@ function equalize() {
 }
 $('#equalize').addEventListener('click', equalize);
 
+// Xのカルーセルは画像の高さが約300pxに固定されるので、表示上の4pxの隙間は
+// 元画像では 4 × (画像の高さ / 300) px ぶんに相当する
+function suggestTrim(img) {
+  const v = Math.min(60, Math.max(0, Math.round(4 * img.naturalHeight / 300 / 2) * 2));
+  state.trim = v; $('#trim').value = v; $('#trimVal').textContent = v + ' px';
+  $('#trimHint').textContent = `この画像での推奨値は ${v} px です。ずれて見えるときは増減してください。`;
+}
+$('#trimOn').addEventListener('change', e => {
+  state.trimOn = e.target.checked;
+  $('#trimRow').classList.toggle('off', !state.trimOn);
+  render();
+});
+$('#trim').addEventListener('input', e => { state.trim = +e.target.value; $('#trimVal').textContent = state.trim + ' px'; clearTimeout(renderTimer); renderTimer = setTimeout(render, 60); });
+
 function render() {
-  const { img, n } = state;
+  const { img, n, trim } = state;
   if (!img) return;
-  const W = img.naturalWidth, H = img.naturalHeight, b = bounds();
+  const W = img.naturalWidth, H = img.naturalHeight, b = bounds(), t = (state.trimOn ? trim : 0) / 2;
   state.pieces.forEach(p => URL.revokeObjectURL(p.url));
   const jobs = [], widths = [];
   for (let i = 0; i < n; i++) {
-    const x0 = Math.round(b[i] * W), x1 = Math.round(b[i + 1] * W), w = Math.max(1, x1 - x0);
+    // 内側の切れ目だけ、境界から trim/2 ずつ削る（両端の外側は削らない）
+    const x0 = Math.round(b[i] * W + (i === 0 ? 0 : t));
+    const x1 = Math.round(b[i + 1] * W - (i === n - 1 ? 0 : t));
+    const w = Math.max(1, x1 - x0);
     widths.push(w);
     const c = document.createElement('canvas'); c.width = w; c.height = H;
     c.getContext('2d').drawImage(img, x0, 0, w, H, 0, 0, w, H);
@@ -357,7 +393,8 @@ function render() {
   Promise.all(jobs).then(pieces => {
     state.pieces = pieces;
     drawCarousel(); drawPieces();
-    $('#exportInfo').textContent = `幅 ${widths.join(' / ')} px × 高さ ${H} px（${n}枚）`;
+    $('#exportInfo').textContent = `幅 ${widths.join(' / ')} px × 高さ ${H} px（${n}枚）` +
+      (state.trimOn && trim > 0 ? `。各切れ目で計 ${trim} px を削っています。` : '');
   });
 }
 
