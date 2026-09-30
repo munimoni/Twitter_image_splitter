@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <!--
-  横分割メーカー — https://github.com/USERNAME/REPO
-  Copyright (c) 2026 YOUR NAME. Released under the MIT License.
+  横分割メーカー — https://github.com/munimoni/Twitter_image_splitter
+  Copyright (c) 2026 munimoni / punit. Released under the MIT License.
 -->
+
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -34,6 +35,7 @@
   .sidebar { display: grid; gap: 20px; position: sticky; top: 20px; min-width: 0; }
   @media (max-width: 860px) { .sidebar { position: static; } }
   .content { display: grid; gap: 28px; min-width: 0; }
+  .content > * { min-width: 0; }
 
   .card { min-width: 0; overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
   .card h2 { font-size: 13px; font-weight: 600; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
@@ -43,6 +45,11 @@
   .field { display: grid; gap: 6px; }
   .field + .field { margin-top: 16px; }
   .field label, .field .lbl { font-weight: 600; font-size: 13px; }
+  .check { display: flex !important; align-items: center; gap: 8px; cursor: pointer; }
+  .check input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; flex: none; }
+  #trimRow { display: grid; gap: 6px; margin-top: 10px; padding-left: 23px; }
+  #trimRow.off { display: none; }
+  .sub { font-weight: 500 !important; font-size: 12px !important; color: var(--ink-dim); }
   .help { color: var(--ink-dim); font-size: 12px; margin: 0; font-weight: 400; }
   .help code { overflow-wrap: anywhere; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; background: var(--panel-2); padding: 1px 4px; border-radius: 3px; }
 
@@ -51,6 +58,8 @@
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
   .seg button:focus-visible { outline-offset: -2px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .field label span { color: var(--ink-dim); font-weight: 400; margin-left: 6px; }
   select { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--accent); color: var(--accent-ink);
@@ -76,8 +85,8 @@
   .empty strong { color: var(--ink); }
 
   /* ---- divider editor ---- */
-  .editor { position: relative; padding-top: 18px; user-select: none; -webkit-user-select: none; }
-  .editor img { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: #000; -webkit-user-drag: none; pointer-events: none; }
+  .editor { position: relative; display: inline-block; max-width: 100%; padding-top: 18px; user-select: none; -webkit-user-select: none; }
+  .editor img { display: block; max-width: 100%; max-height: 520px; width: auto; height: auto; border-radius: 6px; border: 1px solid var(--line); background: #000; -webkit-user-drag: none; pointer-events: none; }
   .divider { position: absolute; top: 0; bottom: 0; width: 0; cursor: ew-resize; touch-action: none; }
   .divider .line { position: absolute; top: 18px; bottom: 0; left: -0.5px; width: 1px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
   .divider .grip { position: absolute; top: 0; left: -7px; width: 14px; height: 18px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
@@ -86,20 +95,22 @@
   .divider:hover .grip path, .divider.active .grip path { fill: #f2c56a; }
   .divider .val { position: absolute; top: 24px; left: 6px; background: rgba(0,0,0,.75); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; opacity: 0; transition: opacity .1s; }
   .divider.active .val, .divider:hover .val { opacity: 1; }
-  .editor-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; color: var(--ink-dim); font-size: 12px; }
-  .linkbtn { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font-size: 12px; }
+  .editor-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; color: var(--ink-dim); font-size: 12px; }
+  .linkbtn { white-space: nowrap; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font-size: 12px; }
   .linkbtn:hover { text-decoration: underline; }
 
   /* ---- preview ---- */
   section h2.sec { font-size: 15px; font-weight: 600; margin: 0; }
   .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
   .sec-head .seg { width: auto; }
+  .sec-head .help { flex: 1 1 160px; text-align: right; min-width: 0; }
+  @media (max-width: 500px) { .sec-head .help { flex-basis: 100%; text-align: left; } }
   .sec-head .seg button { padding: 6px 12px; font-size: 12px; }
 
   .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
   .phone-side { display: grid; gap: 12px; flex: 1 1 200px; min-width: 0; }
   .phone-side .seg { width: auto; display: inline-flex; }
-  .phone { width: 390px; max-width: 100%; background: #000; border-radius: 34px; padding: 12px; border: 1px solid #333; flex: none; }
+  .phone { width: 100%; max-width: 390px; background: #000; border-radius: 34px; padding: 12px; border: 1px solid #333; flex: none; }
   .screen { border-radius: 24px; overflow: hidden; background: var(--x-bg); }
   .screen[data-theme="black"] { --x-bg:#000000; --x-text:#e7e9ea; --x-dim:#71767b; --x-border:#2f3336; --x-avatar:#333639; --x-dot:#3e4144; }
   .screen[data-theme="dim"]   { --x-bg:#15202b; --x-text:#f7f9f9; --x-dim:#8b98a5; --x-border:#38444d; --x-avatar:#425364; --x-dot:#38444d; }
@@ -127,12 +138,12 @@
   .actions { display: flex; justify-content: space-around; padding: 0 16px 14px 66px; color: var(--x-dim); font-size: 13px; }
 
   /* ---- export ---- */
-  .pieces { display: grid; gap: var(--gap); align-items: start; }
+  .pieces { display: grid; gap: var(--gap); align-items: start; max-width: var(--pieces-max, none); }
   .piece { min-width: 0; }
   .piece .thumb { position: relative; }
   .piece img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #000; }
   .piece .tag { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.65); color: var(--ink); font-size: 11px; padding: 2px 7px; border-radius: 4px; }
-  .piece .dl { display: inline-block; margin-top: 6px; font-size: 12px; text-decoration: none; }
+  .piece .dl { display: block; margin-top: 6px; font-size: 12px; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .piece .dl:hover { text-decoration: underline; }
   .export-info { color: var(--ink-dim); font-size: 12px; margin: 10px 0 0; }
 
@@ -176,7 +187,17 @@
         <div class="seg" id="nSeg" role="group" aria-labelledby="nLbl">
           <button data-n="2">2枚</button><button data-n="3">3枚</button><button data-n="4" class="on">4枚</button>
         </div>
-        <p class="help">切る位置は右の「分割位置」で調整できます。</p>
+        <p class="help">切る位置は「分割位置」で調整できます。</p>
+      </div>
+
+      <div class="field">
+        <label class="check"><input type="checkbox" id="trimOn" checked>隙間ぶんを削ってつなげる</label>
+        <p class="help">Xは画像の間に約4pxの隙間を入れるため、そのまま等分すると絵がずれて見えます。境目を少し削っておくと隙間ごしでもつながって見えます。</p>
+        <div id="trimRow">
+          <label for="trim" class="sub">削り幅 <span id="trimVal">0 px</span></label>
+          <input type="range" id="trim" min="0" max="60" step="2" value="0">
+          <p class="help" id="trimHint"></p>
+        </div>
       </div>
 
     </div>
@@ -184,7 +205,7 @@
     <div class="card" id="exportCard" aria-disabled="true">
       <h2><span class="num">3</span>保存する</h2>
       <button class="btn" id="dlAll">すべて保存</button>
-      <p class="help" style="margin-top:8px">画像を1枚ずつ連続でダウンロードします。ファイル名は <code>元の名前_1of4.png</code> のような連番です。ブラウザが「複数ファイルのダウンロードを許可しますか」と聞いてきたら許可してください。</p>
+      <p class="help" id="saveHelp" style="margin-top:8px">画像を1枚ずつ連続でダウンロードします。ファイル名は <code>元の名前_1of4.png</code> のような連番です。ブラウザが「複数ファイルのダウンロードを許可しますか」と聞いてきたら許可してください。</p>
     </div>
 
   </aside>
@@ -238,7 +259,7 @@
     </section>
 
     <section class="hidden" id="piecesSec">
-      <div class="sec-head"><h2 class="sec">分割後の画像</h2><span class="help" style="color:var(--ink-dim);font-size:12px">4pxの隙間をあけて並べた状態</span></div>
+      <div class="sec-head"><h2 class="sec">分割後の画像</h2><span class="help">4pxの隙間をあけて並べた状態</span></div>
       <div class="pieces" id="pieces"></div>
       <p class="export-info" id="exportInfo"></p>
     </section>
@@ -252,7 +273,7 @@
 <script>
 const $ = s => document.querySelector(s);
 const GAP = 4;
-const state = { img: null, n: 4, cuts: [], pieces: [], name: 'image' }; // cuts: 切る位置（0〜1）
+const state = { img: null, n: 4, cuts: [], trim: 0, trimOn: true, pieces: [], name: 'image' }; // cuts: 切る位置（0〜1）
 const MIN_FRAC = 0.03; // 1枚の最小幅（全体比）
 const show = (sel, on = true) => $(sel).classList.toggle('hidden', !on);
 
@@ -274,6 +295,7 @@ function loadFile(file) {
     $('#thumb').src = img.src; $('#editImg').src = img.src; $('#fileName').textContent = file.name || '貼り付けた画像';
     $('#fileDim').textContent = `${img.naturalWidth} × ${img.naturalHeight} px`;
     show('#drop', false); show('#fileInfo'); show('#empty', false); show('#editorSec'); show('#previewSec'); show('#piecesSec');
+    suggestTrim(img);
     equalize();
     $('#settings').removeAttribute('aria-disabled'); $('#exportCard').removeAttribute('aria-disabled');
     render();
@@ -300,17 +322,35 @@ segHandler('#themeSeg', 'theme', v => { $('#screen').dataset.theme = v; });
 const pieceName = i => `${state.name}_${i + 1}of${state.n}.png`;
 
 /* ---------- 3. 保存 ---------- */
+function pieceFiles() {
+  return state.pieces.map((p, i) => new File([p.blob], pieceName(i), { type: 'image/png' }));
+}
+const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+const canShare = () => { try { return isMobile && !!navigator.canShare && navigator.canShare({ files: pieceFiles() }); } catch { return false; } };
+
 $('#dlAll').addEventListener('click', async () => {
   const btn = $('#dlAll'); btn.disabled = true;
-  for (let i = 0; i < state.pieces.length; i++) {
-    btn.textContent = `保存中… ${i + 1} / ${state.pieces.length}`;
-    const a = document.createElement('a');
-    a.href = state.pieces[i].url; a.download = pieceName(i);
-    document.body.appendChild(a); a.click(); a.remove();
-    await new Promise(r => setTimeout(r, 300)); // 連続発火をブラウザが取りこぼさないよう少し間隔をあける
-  }
-  btn.disabled = false; btn.textContent = 'すべて保存';
+  try {
+    if (canShare()) {
+      // スマホ：共有シートから「画像を保存」でまとめて写真に保存できる
+      await navigator.share({ files: pieceFiles(), title: '分割した画像' });
+    } else {
+      for (let i = 0; i < state.pieces.length; i++) {
+        btn.textContent = `保存中… ${i + 1} / ${state.pieces.length}`;
+        const a = document.createElement('a');
+        a.href = state.pieces[i].url; a.download = pieceName(i);
+        document.body.appendChild(a); a.click(); a.remove();
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') alert('保存できませんでした。「分割後の画像」から1枚ずつ保存してください。');
+  } finally { btn.disabled = false; btn.textContent = 'すべて保存'; }
 });
+// スマホでは説明文を共有シート向けに差し替え
+if (isMobile && navigator.canShare) {
+  $('#saveHelp').innerHTML = '共有シートが開くので「画像を保存」を選ぶと、写真アプリにまとめて保存されます。1枚ずつ保存したいときは下の画像を長押ししてください。';
+}
 
 /* ---------- 分割処理 ---------- */
 function bounds() { return [0, ...state.cuts, 1]; }
@@ -320,14 +360,31 @@ function equalize() {
 }
 $('#equalize').addEventListener('click', equalize);
 
+// Xのカルーセルは画像の高さが約300pxに固定されるので、表示上の4pxの隙間は
+// 元画像では 4 × (画像の高さ / 300) px ぶんに相当する
+function suggestTrim(img) {
+  const v = Math.min(60, Math.max(0, Math.round(4 * img.naturalHeight / 300 / 2) * 2));
+  state.trim = v; $('#trim').value = v; $('#trimVal').textContent = v + ' px';
+  $('#trimHint').textContent = `この画像での推奨値は ${v} px です。ずれて見えるときは増減してください。`;
+}
+$('#trimOn').addEventListener('change', e => {
+  state.trimOn = e.target.checked;
+  $('#trimRow').classList.toggle('off', !state.trimOn);
+  render();
+});
+$('#trim').addEventListener('input', e => { state.trim = +e.target.value; $('#trimVal').textContent = state.trim + ' px'; clearTimeout(renderTimer); renderTimer = setTimeout(render, 60); });
+
 function render() {
-  const { img, n } = state;
+  const { img, n, trim } = state;
   if (!img) return;
-  const W = img.naturalWidth, H = img.naturalHeight, b = bounds();
+  const W = img.naturalWidth, H = img.naturalHeight, b = bounds(), t = (state.trimOn ? trim : 0) / 2;
   state.pieces.forEach(p => URL.revokeObjectURL(p.url));
   const jobs = [], widths = [];
   for (let i = 0; i < n; i++) {
-    const x0 = Math.round(b[i] * W), x1 = Math.round(b[i + 1] * W), w = Math.max(1, x1 - x0);
+    // 内側の切れ目だけ、境界から trim/2 ずつ削る（両端の外側は削らない）
+    const x0 = Math.round(b[i] * W + (i === 0 ? 0 : t));
+    const x1 = Math.round(b[i + 1] * W - (i === n - 1 ? 0 : t));
+    const w = Math.max(1, x1 - x0);
     widths.push(w);
     const c = document.createElement('canvas'); c.width = w; c.height = H;
     c.getContext('2d').drawImage(img, x0, 0, w, H, 0, 0, w, H);
@@ -336,7 +393,8 @@ function render() {
   Promise.all(jobs).then(pieces => {
     state.pieces = pieces;
     drawCarousel(); drawPieces();
-    $('#exportInfo').textContent = `幅 ${widths.join(' / ')} px × 高さ ${H} px（${n}枚）`;
+    $('#exportInfo').textContent = `幅 ${widths.join(' / ')} px × 高さ ${H} px（${n}枚）` +
+      (state.trimOn && trim > 0 ? `。各切れ目で計 ${trim} px を削っています。` : '');
   });
 }
 
@@ -433,11 +491,12 @@ car.addEventListener('keydown', e => {
 
 /* ---------- 分割後の一覧 ---------- */
 function drawPieces() {
-  const wrap = $('#pieces'); wrap.innerHTML = ''; wrap.style.gridTemplateColumns = state.pieces.map(p => p.w + 'fr').join(' ');
+  const wrap = $('#pieces'); wrap.innerHTML = ''; wrap.style.gridTemplateColumns = state.pieces.map(p => `minmax(0, ${p.w}fr)`).join(' ');
+  wrap.style.setProperty('--pieces-max', Math.round(state.img.naturalWidth / state.img.naturalHeight * 420) + (state.n - 1) * GAP + 'px'); // 縦長でも高さ420px程度に収める
   state.pieces.forEach((p, i) => {
     const d = document.createElement('div'); d.className = 'piece';
     d.innerHTML = `<div class="thumb"><img src="${p.url}" alt="${i + 1}枚目"><span class="tag">${i + 1} / ${state.n}</span></div>
-      <a class="dl" href="${p.url}" download="${pieceName(i)}">この画像を保存</a>`;
+      <a class="dl" href="${p.url}" download="${pieceName(i)}" title="${pieceName(i)}">保存</a>`;
     wrap.appendChild(d);
   });
 }
